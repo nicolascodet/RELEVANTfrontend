@@ -38,39 +38,43 @@ export interface EmailMessage {
   subject: string
   sender: string
   recipient: string
-  date: string
-  body_preview: string
-  full_body?: string
+  received_at: string
+  body_text?: string
+  body_html?: string
   thread_id?: string
-  labels: string[]
+  is_starred: boolean
+  has_attachments: boolean
   ai_analysis?: {
-    classification: 'opportunity' | 'contract' | 'proposal' | 'inquiry' | 'other'
-    confidence: number
-    entities: string[]
-    sentiment: 'positive' | 'neutral' | 'negative'
+    category: string
     priority: 'high' | 'medium' | 'low'
-    summary: string
+    confidence: number
+    summary?: string
+    key_entities?: string[]
+    action_items?: string[]
+    is_contract_opportunity?: boolean
+    estimated_value?: number
+    deadline?: string
   }
 }
 
 export interface ContractOpportunity {
   id: string
   title: string
-  description: string
-  source_email_id: string
-  status: 'new' | 'qualified' | 'proposal_sent' | 'negotiating' | 'won' | 'lost'
-  estimated_value: number
-  probability: number
+  description?: string
+  notes?: string
+  company?: string
+  contact_name?: string
+  contact_email?: string
+  source_email_id?: string
+  status: 'new' | 'in_progress' | 'submitted' | 'won' | 'lost'
+  priority?: 'critical' | 'high' | 'medium' | 'low'
+  estimated_value?: number
   deadline?: string
+  requirements?: string[]
+  ai_confidence?: number
+  ai_generated?: boolean
   created_at: string
   updated_at: string
-  tags: string[]
-  contact_info: {
-    name?: string
-    email: string
-    company?: string
-    phone?: string
-  }
 }
 
 export interface DashboardOverview {
@@ -125,23 +129,24 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[]
-  pagination: {
-    page: number
-    per_page: number
-    total: number
-    total_pages: number
-  }
-  success: boolean
+  emails: T[]
+  total: number
+  page: number
+  limit: number
+  total_pages: number
 }
 
 export interface SearchFilters {
-  query?: string
+  page?: number
+  limit?: number
+  search?: string
+  category?: string
+  priority?: string
   date_from?: string
   date_to?: string
+  query?: string
   classification?: string[]
   sender?: string
-  priority?: string[]
   status?: string[]
 }
 

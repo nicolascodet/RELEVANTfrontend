@@ -26,7 +26,7 @@ export default function OpportunitiesPage() {
   })
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
+    mutationFn: ({ id, status }: { id: string; status: 'new' | 'in_progress' | 'submitted' | 'won' | 'lost' }) =>
       api.opportunities.update(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['opportunities'] })
@@ -34,7 +34,7 @@ export default function OpportunitiesPage() {
   })
 
   const handleStatusChange = (opportunityId: string, newStatus: string) => {
-    updateStatusMutation.mutate({ id: opportunityId, status: newStatus })
+    updateStatusMutation.mutate({ id: opportunityId, status: newStatus as 'new' | 'in_progress' | 'submitted' | 'won' | 'lost' })
   }
 
   const handleOpportunityClick = (opportunity: ContractOpportunity) => {
@@ -47,9 +47,9 @@ export default function OpportunitiesPage() {
     
     return {
       total: opportunities.length,
-      value: opportunities.reduce((sum, opp) => sum + (opp.estimated_value || 0), 0),
-      active: opportunities.filter(opp => ['new', 'in_progress', 'submitted'].includes(opp.status)).length,
-      won: opportunities.filter(opp => opp.status === 'won').length,
+      value: opportunities.reduce((sum: number, opp: ContractOpportunity) => sum + (opp.estimated_value || 0), 0),
+      active: opportunities.filter((opp: ContractOpportunity) => ['new', 'in_progress', 'submitted'].includes(opp.status)).length,
+      won: opportunities.filter((opp: ContractOpportunity) => opp.status === 'won').length,
     }
   }
 
@@ -153,7 +153,7 @@ export default function OpportunitiesPage() {
           />
         ) : (
           <div className="space-y-3">
-            {opportunities.map((opportunity) => (
+            {opportunities.map((opportunity: ContractOpportunity) => (
               <OpportunityCard
                 key={opportunity.id}
                 opportunity={opportunity}

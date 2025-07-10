@@ -43,9 +43,9 @@ export function RecentEmails({ emails }: RecentEmailsProps) {
                       {email.ai_analysis && (
                         <Badge
                           variant="secondary"
-                          className={getStatusColor(email.ai_analysis.classification)}
+                          className={getStatusColor(email.ai_analysis.category)}
                         >
-                          {email.ai_analysis.classification}
+                          {email.ai_analysis.category}
                         </Badge>
                       )}
                       <ExternalLink className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -57,12 +57,12 @@ export function RecentEmails({ emails }: RecentEmailsProps) {
                   </p>
                   
                   <p className="text-sm text-gray-500 line-clamp-2">
-                    {email.body_preview}
+                    {email.body_text || email.body_html || 'No preview available'}
                   </p>
                   
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs text-gray-400">
-                      {formatRelativeTime(email.date)}
+                      {formatRelativeTime(email.received_at)}
                     </span>
                     {email.ai_analysis && (
                       <div className="flex items-center space-x-2">

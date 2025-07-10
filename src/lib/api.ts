@@ -135,12 +135,16 @@ class ApiClient {
     return response.data
   }
 
+  async syncEmailAccount(accountId: string): Promise<void> {
+    await this.request(`/api/v1/email/accounts/${accountId}/sync`, {
+      method: 'POST',
+    })
+  }
+
   // Email Messages
-  async getEmailMessages(
-    page = 1, 
-    perPage = 20, 
-    filters?: SearchFilters
-  ): Promise<PaginatedResponse<EmailMessage>> {
+  async getEmailMessages(filters?: SearchFilters): Promise<PaginatedResponse<EmailMessage>> {
+    const page = filters?.page || 1
+    const perPage = filters?.limit || 20
     const params = new URLSearchParams({
       page: page.toString(),
       per_page: perPage.toString(),
@@ -169,34 +173,20 @@ class ApiClient {
   }
 
   // Contract Opportunities
-  async getOpportunities(
-    page = 1, 
-    perPage = 20, 
-    filters?: SearchFilters
-  ): Promise<PaginatedResponse<ContractOpportunity>> {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      per_page: perPage.toString(),
-    })
-    
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
-          if (Array.isArray(value)) {
-            value.forEach(v => params.append(key, v))
-          } else {
-            params.append(key, value.toString())
-          }
-        }
-      })
-    }
-
-    return await this.request<PaginatedResponse<ContractOpportunity>>(
-      `/api/v1/email/opportunities?${params.toString()}`
-    )
+  async getContractOpportunities(): Promise<ContractOpportunity[]> {
+    const response = await this.request<ApiResponse<ContractOpportunity[]>>('/api/v1/email/opportunities')
+    return response.data
   }
 
-  async updateOpportunity(
+  async createContractOpportunity(data: Partial<ContractOpportunity>): Promise<ContractOpportunity> {
+    const response = await this.request<ApiResponse<ContractOpportunity>>('/api/v1/email/opportunities', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+    return response.data
+  }
+
+  async updateContractOpportunity(
     id: string, 
     data: Partial<ContractOpportunity>
   ): Promise<ContractOpportunity> {
@@ -251,5 +241,35 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient(API_BASE_URL)
+const apiClient = new ApiClient(API_BASE_URL)
+
+export const api = {
+  auth: {
+    login: (data: LoginRequest) => apiClient.login(data),
+    register: (data: RegisterRequest) => apiClient.register(data),
+    logout: () => apiClient.logout(),
+    getCurrentUser: () => apiClient.getCurrentUser(),
+  },
+  email: {
+    getAccounts: () => apiClient.getEmailAccounts(),
+    addAccount: (data: { email: string; provider: string }) => apiClient.addEmailAccount(data),
+    syncAccount: (accountId: string) => apiClient.syncEmailAccount(accountId),
+    getMessages: (params?: SearchFilters) => apiClient.getEmailMessages(params),
+  },
+  opportunities: {
+    getAll: () => apiClient.getContractOpportunities(),
+    create: (data: Partial<ContractOpportunity>) => apiClient.createContractOpportunity(data),
+    update: (id: string, data: Partial<ContractOpportunity>) => apiClient.updateContractOpportunity(id, data),
+  },
+  dashboard: {
+    getOverview: () => apiClient.getDashboardOverview(),
+    getCriticalAlerts: () => apiClient.getCriticalAlerts(),
+  },
+  analytics: {
+    getEmailAnalytics: (dateFrom?: string, dateTo?: string) => apiClient.getEmailAnalytics(dateFrom, dateTo),
+    getRevenueAnalytics: (dateFrom?: string, dateTo?: string) => apiClient.getRevenueAnalytics(dateFrom, dateTo),
+  },
+}
+
+export { apiClient }
 export default apiClient
