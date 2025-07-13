@@ -107,6 +107,26 @@ class AuthManager {
     }
   }
 
+  async googleLogin(accessToken: string): Promise<void> {
+    this.setState({ isLoading: true })
+    
+    try {
+      const authResponse = await apiClient.googleLogin(accessToken)
+      this.setState({
+        user: authResponse.user,
+        isAuthenticated: true,
+        isLoading: false,
+      })
+    } catch (error) {
+      this.setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      })
+      throw error
+    }
+  }
+
   async logout(): Promise<void> {
     await apiClient.logout()
     this.setState({

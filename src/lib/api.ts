@@ -14,7 +14,7 @@ import {
   SearchFilters
 } from '@/types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://relevant-backend-424828966180.us-central1.run.app'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://relevant-backend-cb6tyu6rwq-uc.a.run.app'
 
 class ApiClient {
   private baseURL: string
@@ -101,6 +101,19 @@ class ApiClient {
 
   async getCurrentUser(): Promise<User> {
     const response = await this.request<ApiResponse<User>>('/api/v1/auth/me')
+    return response.data
+  }
+
+  async googleLogin(accessToken: string): Promise<AuthResponse> {
+    const response = await this.request<ApiResponse<AuthResponse>>('/api/v1/auth/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ token: accessToken }),
+    })
+    
+    if (response.data.access_token) {
+      localStorage.setItem('auth_token', response.data.access_token)
+    }
+    
     return response.data
   }
 
