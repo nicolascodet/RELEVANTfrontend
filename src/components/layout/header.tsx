@@ -47,12 +47,12 @@ export function Header({ onMenuClick }: HeaderProps) {
           </Button>
           
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-sm font-medium text-gray-600">JD</span>
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <span className="text-sm font-medium text-white">U</span>
             </div>
             <div className="hidden sm:block text-sm">
-              <div className="font-medium text-gray-900">John Doe</div>
-              <div className="text-gray-500">john@example.com</div>
+              <div className="font-medium text-gray-900">User</div>
+              <div className="text-gray-500">Loading...</div>
             </div>
           </div>
         </div>
