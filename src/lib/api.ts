@@ -185,6 +185,11 @@ class ApiClient {
     return response.data
   }
 
+  async getEmailContent(messageId: string, provider: string): Promise<EmailMessage> {
+    const response = await this.request<EmailMessage>(`/api/email/content/${messageId}?provider=${provider}`)
+    return response
+  }
+
   // Contract Opportunities
   async getContractOpportunities(): Promise<ContractOpportunity[]> {
     const response = await this.request<ApiResponse<ContractOpportunity[]>>('/api/v1/email/opportunities')
@@ -268,6 +273,7 @@ export const api = {
     addAccount: (data: { email: string; provider: string }) => apiClient.addEmailAccount(data),
     syncAccount: (accountId: string) => apiClient.syncEmailAccount(accountId),
     getMessages: (params?: SearchFilters) => apiClient.getEmailMessages(params),
+    getContent: (messageId: string, provider: string) => apiClient.getEmailContent(messageId, provider),
   },
   opportunities: {
     getAll: () => apiClient.getContractOpportunities(),

@@ -35,15 +35,29 @@ export interface EmailAccount {
 
 export interface EmailMessage {
   id: string
+  message_id?: string
   subject: string
   sender: string
+  from?: string
   recipient: string
+  to?: string[]
+  cc?: string[]
   received_at: string
+  date?: string
   body_text?: string
+  body?: string
   body_html?: string
+  html_body?: string
   thread_id?: string
   is_starred: boolean
   has_attachments: boolean
+  attachments?: {
+    filename: string
+    mime_type: string
+    size: number
+  }[]
+  labels?: string[]
+  snippet?: string
   ai_analysis?: {
     category: string
     priority: 'high' | 'medium' | 'low'
