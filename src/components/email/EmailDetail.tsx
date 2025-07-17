@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { X, Mail, Calendar, Paperclip, Star, ExternalLink, Brain, Target, DollarSign, Loader2, AlertCircle } from 'lucide-react'
+import { 
+  X, Mail, Calendar, Paperclip, Star, ExternalLink, Brain, Target, 
+  DollarSign, Loader2, AlertCircle, Reply, Forward, Download, 
+  Search, Printer, Eye, EyeOff 
+} from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
 import { EmailMessage } from '@/types'
 import { api } from '@/lib/api'
 import DOMPurify from 'isomorphic-dompurify'
@@ -17,29 +22,69 @@ interface EmailDetailProps {
   email: EmailMessage | null
   isOpen: boolean
   onClose: () => void
+  onReply?: (email: EmailMessage) => void
+  onForward?: (email: EmailMessage) => void
+  onMarkAsRead?: (messageId: string, isRead: boolean) => void
 }
 
-export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
+export function EmailDetail({ 
+  email, 
+  isOpen, 
+  onClose, 
+  onReply, 
+  onForward,
+  onMarkAsRead 
+}: EmailDetailProps) {
   const [fullEmail, setFullEmail] = useState<EmailMessage | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showSearch, setShowSearch] = useState(false)
+  const [isRead, setIsRead] = useState(true)
 
   useEffect(() => {
     if (isOpen && email) {
       fetchFullEmail()
+      setIsRead(email.is_read || true)
     }
   }, [isOpen, email])
 
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && isOpen) {
-        onClose()
+        if (showSearch) {
+          setShowSearch(false)
+          setSearchTerm('')
+        } else {
+          onClose()
+        }
+      }
+    }
+
+    const handleCtrlF = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'f' && isOpen) {
+        event.preventDefault()
+        setShowSearch(true)
+      }
+    }
+
+    const handleCtrlP = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'p' && isOpen) {
+        event.preventDefault()
+        handlePrint()
       }
     }
 
     document.addEventListener('keydown', handleEscKey)
-    return () => document.removeEventListener('keydown', handleEscKey)
-  }, [isOpen, onClose])
+    document.addEventListener('keydown', handleCtrlF)
+    document.addEventListener('keydown', handleCtrlP)
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscKey)
+      document.removeEventListener('keydown', handleCtrlF)
+      document.removeEventListener('keydown', handleCtrlP)
+    }
+  }, [isOpen, onClose, showSearch])
 
   const fetchFullEmail = async () => {
     if (!email) return
@@ -58,6 +103,53 @@ export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
       setFullEmail(email)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleMarkAsRead = () => {
+    const displayEmail = fullEmail || email
+    if (!displayEmail) return
+
+    const newReadStatus = !isRead
+    setIsRead(newReadStatus)
+    
+    if (onMarkAsRead) {
+      const messageId = displayEmail.message_id || displayEmail.id
+      onMarkAsRead(messageId, newReadStatus)
+    }
+  }
+
+  const handleReply = () => {
+    const displayEmail = fullEmail || email
+    if (displayEmail && onReply) {
+      onReply(displayEmail)
+    }
+  }
+
+  const handleForward = () => {
+    const displayEmail = fullEmail || email
+    if (displayEmail && onForward) {
+      onForward(displayEmail)
+    }
+  }
+
+  const handleDownloadAttachment = (attachment: any) => {
+    // In a real implementation, this would download the attachment
+    console.log('Downloading attachment:', attachment.filename)
+    // You would typically call an API endpoint to get the attachment data
+    // then create a download link
+  }
+
+  const handlePrint = () => {
+    window.print()
+  }
+
+  const handleOpenInGmail = () => {
+    // This would open the email in Gmail
+    // You'd need the Gmail URL structure for this
+    const displayEmail = fullEmail || email
+    if (displayEmail) {
+      window.open(`https://mail.google.com/mail/u/0/#inbox/${displayEmail.message_id || displayEmail.id}`, '_blank')
     }
   }
 
@@ -89,6 +181,13 @@ export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
     }
   }
 
+  const highlightSearchTerm = (text: string) => {
+    if (!searchTerm) return text
+
+    const regex = new RegExp(`(${searchTerm})`, 'gi')
+    return text.replace(regex, '<mark class="bg-yellow-200">$1</mark>')
+  }
+
   const renderEmailContent = () => {
     const emailContent = fullEmail || email
     if (!emailContent) return null
@@ -97,23 +196,34 @@ export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
     const textContent = emailContent.body || emailContent.body_text || emailContent.snippet
 
     if (htmlContent) {
-      const sanitizedHtml = DOMPurify.sanitize(htmlContent, {
-        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img'],
+      let processedHtml = DOMPurify.sanitize(htmlContent, {
+        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'mark'],
         ALLOWED_ATTR: ['href', 'target', 'rel', 'style', 'class', 'src', 'alt', 'width', 'height'],
         ALLOW_DATA_ATTR: false
       })
 
+      // Apply search highlighting
+      if (searchTerm) {
+        processedHtml = highlightSearchTerm(processedHtml)
+      }
+
       return (
         <div 
           className="prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+          dangerouslySetInnerHTML={{ __html: processedHtml }}
         />
       )
     }
 
+    const highlightedText = searchTerm ? highlightSearchTerm(textContent || 'No content available') : (textContent || 'No content available')
+
     return (
       <div className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 rounded-lg p-4">
-        {textContent || 'No content available'}
+        {searchTerm ? (
+          <div dangerouslySetInnerHTML={{ __html: highlightedText }} />
+        ) : (
+          highlightedText
+        )}
       </div>
     )
   }
@@ -124,26 +234,61 @@ export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader>
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto print:max-w-full">
+        <SheetHeader className="print:hidden">
           <div className="flex items-start justify-between">
             <SheetTitle className="text-xl font-semibold pr-8">
               {displayEmail.subject}
             </SheetTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleMarkAsRead}
+                title={isRead ? "Mark as unread" : "Mark as read"}
+              >
+                {isRead ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </SheetHeader>
 
+        {/* Search Bar */}
+        {showSearch && (
+          <div className="mt-4 flex items-center gap-2 print:hidden">
+            <Search className="h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search in email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+              autoFocus
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowSearch(false)
+                setSearchTerm('')
+              }}
+            >
+              Close
+            </Button>
+          </div>
+        )}
+
         <div className="mt-6 space-y-6">
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="print:hidden">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -191,7 +336,15 @@ export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
                   <div className="flex flex-col gap-1">
                     {displayEmail.attachments.map((attachment, index) => (
                       <div key={index} className="flex items-center gap-2">
-                        <span className="text-gray-600">{attachment.filename}</span>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-gray-600 hover:text-gray-900"
+                          onClick={() => handleDownloadAttachment(attachment)}
+                        >
+                          <Download className="h-3 w-3 mr-1" />
+                          {attachment.filename}
+                        </Button>
                         <span className="text-gray-400 text-xs">
                           ({(attachment.size / 1024).toFixed(1)} KB)
                         </span>
@@ -217,7 +370,7 @@ export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
 
           {/* AI Analysis */}
           {displayEmail.ai_analysis && (
-            <Card className="p-4 bg-gray-50">
+            <Card className="p-4 bg-gray-50 print:border-gray-300">
               <div className="flex items-center gap-2 mb-3">
                 <Brain className="h-5 w-5 text-blue-600" />
                 <h3 className="font-semibold">AI Analysis</h3>
@@ -272,7 +425,7 @@ export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
 
           {/* Contract Opportunity Detection */}
           {displayEmail.ai_analysis?.is_contract_opportunity && (
-            <Card className="p-4 bg-green-50 border-green-200">
+            <Card className="p-4 bg-green-50 border-green-200 print:border-green-300">
               <div className="flex items-center gap-2 mb-3">
                 <Target className="h-5 w-5 text-green-600" />
                 <h3 className="font-semibold text-green-900">Contract Opportunity Detected</h3>
@@ -299,7 +452,7 @@ export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
                   </div>
                 )}
 
-                <Button className="mt-3 w-full" variant="default">
+                <Button className="mt-3 w-full print:hidden" variant="default">
                   Create Opportunity
                 </Button>
               </div>
@@ -325,14 +478,26 @@ export function EmailDetail({ email, isOpen, onClose }: EmailDetailProps) {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-4 border-t">
-            <Button variant="outline" className="flex-1">
-              <Mail className="h-4 w-4 mr-2" />
+          <div className="flex flex-wrap gap-2 pt-4 border-t print:hidden">
+            <Button variant="outline" onClick={handleReply}>
+              <Reply className="h-4 w-4 mr-2" />
               Reply
             </Button>
-            <Button variant="outline" className="flex-1">
+            <Button variant="outline" onClick={handleForward}>
+              <Forward className="h-4 w-4 mr-2" />
+              Forward
+            </Button>
+            <Button variant="outline" onClick={handleOpenInGmail}>
               <ExternalLink className="h-4 w-4 mr-2" />
               Open in Gmail
+            </Button>
+            <Button variant="outline" onClick={() => setShowSearch(!showSearch)}>
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-2" />
+              Print
             </Button>
             <Button variant="outline" size="icon">
               <Star className={`h-4 w-4 ${displayEmail.is_starred ? 'fill-current text-yellow-500' : ''}`} />

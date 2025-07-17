@@ -50,6 +50,7 @@ export interface EmailMessage {
   html_body?: string
   thread_id?: string
   is_starred: boolean
+  is_read?: boolean
   has_attachments: boolean
   attachments?: {
     filename: string
